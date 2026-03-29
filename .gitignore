@@ -1,0 +1,14 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.vscode/
+*.egg-info/
+dist/
+build/
+*.log
+.ollama/
+ollama_data/
+.idea/

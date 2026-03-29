@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VCC 3</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Auto scaling Demo project</p>
+        <h1>VCC 3</h1>
+        <p class="intro">
+          This micro-service demonstrates a toxicity classifier powered by a local self-hosted
+          LLM, with cloud VM load shifting when traffic spikes.
+        </p>
+      </section>
+
+      <section class="card classifier">
+        <h2>Toxicity Classifier</h2>
+        <label for="textInput">Enter text</label>
+        <textarea id="textInput" rows="5" placeholder="Type a sentence to classify..."></textarea>
+        <button id="classifyBtn" class="btn primary">Classify</button>
+        <div id="result" class="result hidden"></div>
+      </section>
+
+      <section class="card load">
+        <h2>Stress and Auto Scale</h2>
+        <p>
+          Press the red button to generate burst traffic. The local VM will route extra traffic to
+          the Google Cloud VM backend when queue pressure is high.
+        </p>
+        <div class="controls">
+          <label>Total Requests <input id="totalRequests" type="number" min="1" max="5000" value="200" /></label>
+          <label>Concurrency <input id="concurrency" type="number" min="1" max="200" value="40" /></label>
+        </div>
+        <button id="loadBtn" class="btn danger">Generate Load and Trigger Upscaling</button>
+        <pre id="loadOutput" class="output"></pre>
+      </section>
+
+      <section class="card metrics">
+        <h2>Live Metrics</h2>
+        <pre id="metrics"></pre>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

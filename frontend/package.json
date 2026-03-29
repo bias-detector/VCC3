@@ -1,0 +1,13 @@
+{
+  "name": "vcc-3-frontend",
+  "version": "1.0.0",
+  "description": "VCC 3 Frontend - Auto Scaling Toxicity Classifier UI",
+  "type": "module",
+  "scripts": {
+    "dev": "python3 -m http.server 3000 --directory public",
+    "build": "echo 'Static files are in public/'",
+    "test": "echo 'Frontend is pure HTML/CSS/JS'"
+  },
+  "author": "",
+  "license": "MIT"
+}

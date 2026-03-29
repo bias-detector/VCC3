@@ -1,0 +1,141 @@
+:root {
+  --bg-top: #f8efe1;
+  --bg-bottom: #dce7ff;
+  --ink: #17223b;
+  --card: rgba(255, 255, 255, 0.76);
+  --line: rgba(23, 34, 59, 0.16);
+  --primary: #1259ff;
+  --danger: #cf1020;
+  --success: #00884d;
+  --warning: #b95b00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at 15% 20%, #ffe7ba 0%, transparent 35%),
+    radial-gradient(circle at 80% 10%, #d4f4ff 0%, transparent 40%),
+    linear-gradient(160deg, var(--bg-top), var(--bg-bottom));
+}
+
+.shell {
+  width: min(980px, 92vw);
+  margin: 2rem auto;
+  display: grid;
+  gap: 1rem;
+  animation: rise 450ms ease-out;
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 7vw, 4rem);
+  margin: 0;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.intro {
+  max-width: 72ch;
+}
+
+.card {
+  backdrop-filter: blur(8px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 8px 30px rgba(12, 28, 74, 0.08);
+}
+
+label {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+textarea,
+input {
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-family: inherit;
+}
+
+textarea {
+  margin-bottom: 0.8rem;
+}
+
+.btn {
+  border: 0;
+  padding: 0.72rem 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.primary {
+  background: var(--primary);
+}
+
+.danger {
+  background: var(--danger);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+  margin: 0.75rem 0;
+}
+
+.result,
+.output,
+#metrics {
+  margin-top: 0.9rem;
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  white-space: pre-wrap;
+}
+
+.hidden {
+  display: none;
+}
+
+.result.toxic {
+  border-left: 6px solid var(--danger);
+}
+
+.result.clean {
+  border-left: 6px solid var(--success);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 780px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+}
