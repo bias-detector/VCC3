@@ -1,10 +1,3 @@
-const startBtn = document.getElementById("startBtn");
-const gameContent = document.getElementById("gameContent");
-const guessInput = document.getElementById("guessInput");
-const guessBtn = document.getElementById("guessBtn");
-const gameMessage = document.getElementById("gameMessage");
-const resultBox = document.getElementById("result");
-
 const stressStartBtn = document.getElementById("stressStartBtn");
 const stressStopBtn = document.getElementById("stressStopBtn");
 const stressOutput = document.getElementById("stressOutput");
@@ -12,84 +5,29 @@ const cpuPercent = document.getElementById("cpuPercent");
 const scaleEnabled = document.getElementById("scaleEnabled");
 const scaleStatus = document.getElementById("scaleStatus");
 const scaleTimer = document.getElementById("scaleTimer");
+const downTimer = document.getElementById("downTimer");
+const vmState = document.getElementById("vmState");
+const downArmed = document.getElementById("downArmed");
+const remoteUrl = document.getElementById("remoteUrl");
 const scaleMessage = document.getElementById("scaleMessage");
+const terminalLogs = document.getElementById("terminalLogs");
 
-let gameActive = false;
-
-async function startGame() {
-  try {
-    const response = await fetch("/api/game/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to start game");
-    }
-
-    const data = await response.json();
-    gameActive = true;
-    gameContent.classList.remove("hidden");
-    gameMessage.textContent = data.message;
-    resultBox.classList.add("hidden");
-    guessInput.value = "";
-    guessInput.focus();
-    startBtn.textContent = "New Game";
-  } catch (error) {
-    gameMessage.textContent = `Error: ${error.message}`;
+function formatTs(isoString) {
+  if (!isoString) {
+    return "--";
   }
-}
-
-async function makeGuess() {
-  const guess = guessInput.value.trim();
-
-  if (!guess) {
-    resultBox.textContent = "Please enter a number!";
-    resultBox.classList.remove("hidden");
-    return;
+  const dt = new Date(isoString);
+  if (Number.isNaN(dt.valueOf())) {
+    return isoString;
   }
-
-  try {
-    const response = await fetch("/api/game/guess", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guess: parseInt(guess) }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to make guess");
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      resultBox.textContent = data.error;
-      resultBox.className = "result error";
-    } else {
-      resultBox.textContent = data.message;
-      resultBox.className = `result ${data.result}`;
-      
-      if (data.game_over) {
-        gameActive = false;
-        guessBtn.disabled = true;
-        guessInput.disabled = true;
-      }
-    }
-
-    resultBox.classList.remove("hidden");
-    guessInput.value = "";
-    guessInput.focus();
-  } catch (error) {
-    resultBox.textContent = `Error: ${error.message}`;
-    resultBox.classList.remove("hidden");
-  }
+  return dt.toLocaleString();
 }
 
 async function startCpuStress() {
   stressStartBtn.disabled = true;
   stressOutput.textContent = "Starting CPU stress...";
   try {
-    const response = await fetch("/api/stress/start", {
+    const response = await fetch("/api/scale/stress/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({}),
@@ -104,7 +42,7 @@ async function startCpuStress() {
     stressOutput.textContent = data.message || "CPU stress started.";
     stressStopBtn.disabled = false;
   } catch (error) {
-    stressOutput.textContent = `Error: ${error.message}`;
+    stressOutput.textContent = `Start failed: ${error.message}`;
   } finally {
     stressStartBtn.disabled = false;
     refreshMetrics();
@@ -116,7 +54,7 @@ async function stopCpuStress() {
   stressOutput.textContent = "Stopping CPU stress...";
 
   try {
-    const response = await fetch("/api/stress/stop", {
+    const response = await fetch("/api/scale/stress/stop", {
       method: "POST",
     });
 
@@ -128,17 +66,45 @@ async function stopCpuStress() {
     const data = await response.json();
     stressOutput.textContent = data.message || "CPU stress stopped.";
   } catch (error) {
-    stressOutput.textContent = `Error: ${error.message}`;
+    stressOutput.textContent = `Stop failed: ${error.message}`;
   } finally {
     stressStopBtn.disabled = false;
     refreshMetrics();
   }
 }
 
+function renderLogs(events) {
+  if (!terminalLogs) {
+    return;
+  }
+
+  if (!Array.isArray(events) || events.length === 0) {
+    terminalLogs.innerHTML = "Waiting for logs...";
+    return;
+  }
+
+  const html = events.map((entry) => {
+    const level = String(entry.level || "info").toLowerCase();
+    const source = entry.source || "system";
+    const message = entry.message || "";
+    const ts = entry.timestamp ? new Date(entry.timestamp) : new Date();
+    const time = ts.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const levelTag = `[${level.toUpperCase()}]`.padEnd(8);
+    const line = `<span class="log-line log-${level}"><span class="log-time">${time}</span> <span class="log-level">${levelTag}</span> <span class="log-source">[${source}]</span> <span class="log-msg">${message}</span></span>`;
+    return line;
+  }).join("\n");
+
+  terminalLogs.innerHTML = html;
+  terminalLogs.scrollTop = terminalLogs.scrollHeight;
+}
+
 async function refreshMetrics() {
   try {
-    const response = await fetch("/api/metrics");
+    const response = await fetch("/api/scale/metrics");
     if (!response.ok) {
+      if (stressOutput) {
+        stressOutput.textContent = "Metrics fetch failed. Check backend server status.";
+      }
       return;
     }
     const data = await response.json();
@@ -161,28 +127,41 @@ async function refreshMetrics() {
       scaleTimer.textContent = `${above}s / ${target}s`;
     }
 
+    if (downTimer) {
+      const below = Number(data.scale_below_threshold_seconds || 0);
+      const target = Number(data.scale_down_target_seconds || 0);
+      downTimer.textContent = `${below}s / ${target}s`;
+    }
+
+    if (vmState) {
+      vmState.textContent = data.scale_vm_active ? "ACTIVE" : "NOT ACTIVE";
+    }
+
+    if (downArmed) {
+      downArmed.textContent = data.scale_down_armed ? "YES" : "NO";
+    }
+
+    if (remoteUrl) {
+      remoteUrl.textContent = data.scale_remote_url || "--";
+    }
+
     if (scaleMessage) {
-      const remoteUrl = data.scale_remote_url ? `\nRemote: ${data.scale_remote_url}` : "";
-      scaleMessage.textContent = (data.scale_message || "No scale events yet.") + remoteUrl;
+      scaleMessage.textContent = data.scale_message || "No scale events yet.";
     }
 
     const stressActive = Boolean(data.stress_active);
     if (stressStartBtn && stressStopBtn) {
       stressStartBtn.disabled = stressActive;
-      stressStopBtn.disabled = !stressActive;
+      stressStopBtn.disabled = !(stressActive || data.scale_vm_active || data.scale_down_armed);
     }
-  } catch {
-    // No-op if metrics call fails
+
+    renderLogs(data.event_log || []);
+  } catch (error) {
+    if (stressOutput) {
+      stressOutput.textContent = `Connection issue: ${error.message}`;
+    }
   }
 }
-
-startBtn.addEventListener("click", startGame);
-guessBtn.addEventListener("click", makeGuess);
-guessInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    makeGuess();
-  }
-});
 
 if (stressStartBtn) {
   stressStartBtn.addEventListener("click", startCpuStress);

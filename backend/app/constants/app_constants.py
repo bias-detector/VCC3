@@ -1,0 +1,9 @@
+SERVICE_NAME = "Autoscale Lifecycle Demo"
+GCP_PROJECT_ID = "autoscalefinaldemo"
+GCP_VM_NAME = "guess-game-vm"
+GCP_ZONE = "us-central1-a"
+GCP_MACHINE_TYPE = "e2-medium"
+REPO_URL = "https://github.com/bias-detector/VCC3"
+SCALE_UP_CPU_THRESHOLD = 75.0
+SCALE_UP_SECONDS = 10
+SCALE_POLL_SECONDS = 1

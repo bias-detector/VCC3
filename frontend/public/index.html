@@ -3,73 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Guess the Number</title>
+    <title>Autoscale Lifecycle Demo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260330" />
   </head>
   <body>
     <main class="shell">
-      <section class="hero">
-        <h1>Guess the Number</h1>
+      <section class="hero card">
+        <p class="eyebrow">Local to Remote Autoscale</p>
+        <h1>Scale Up and Scale Down Demo</h1>
         <p class="intro">
-          Guess a number between 1 and 100. See if you can beat the computer!
+          Start CPU stress to trigger scale-up. Press stop to arm scale-down;
+          when CPU stays below threshold for 10 seconds, the VM is deleted.
         </p>
       </section>
 
       <div class="layout-container">
-        <section class="card game">
-          <h2>Play Game</h2>
-          <button id="startBtn" class="btn primary">Start New Game</button>
-          <div id="gameContent" class="game-content hidden">
-            <p id="gameMessage">Think of a number between 1 and 100...</p>
-            <div class="guess-area">
-              <input id="guessInput" type="number" placeholder="Enter your guess" min="1" max="100" />
-              <button id="guessBtn" class="btn primary">Guess</button>
-            </div>
-            <div id="result" class="result hidden"></div>
+        <section class="card control-panel">
+          <h2>Control Panel</h2>
+          <div class="stress-actions">
+            <button id="stressStartBtn" class="btn danger" type="button">Start Stress</button>
+            <button id="stressStopBtn" class="btn secondary" type="button">Stop Stress</button>
           </div>
+          <pre id="stressOutput" class="output">Idle.</pre>
+
+          <div class="kpi-grid">
+            <article class="kpi">
+              <p>CPU</p>
+              <h3 id="cpuPercent">--</h3>
+            </article>
+            <article class="kpi">
+              <p>Scale Status</p>
+              <h3 id="scaleStatus">--</h3>
+            </article>
+            <article class="kpi">
+              <p>Remote VM</p>
+              <h3 id="vmState">--</h3>
+            </article>
+            <article class="kpi">
+              <p>Scale-Down Armed</p>
+              <h3 id="downArmed">--</h3>
+            </article>
+          </div>
+
+          <div class="mini-metrics">
+            <div class="mini-row">
+              <span>High CPU timer</span>
+              <span id="scaleTimer">--</span>
+            </div>
+            <div class="mini-row">
+              <span>Low CPU timer</span>
+              <span id="downTimer">--</span>
+            </div>
+            <div class="mini-row">
+              <span>Monitor</span>
+              <span id="scaleEnabled">--</span>
+            </div>
+            <div class="mini-row">
+              <span>Remote URL</span>
+              <span id="remoteUrl">--</span>
+            </div>
+          </div>
+
+          <pre id="scaleMessage" class="output">Waiting for metrics...</pre>
         </section>
 
-        <div class="sidebar">
-          <section class="card metrics">
-            <h2>Metrics</h2>
-            <div class="cpu-display">
-              <span>CPU:</span>
-              <span id="cpuPercent" class="cpu-value">--</span>
-            </div>
-            <div class="mini-metrics">
-              <div class="mini-row">
-                <span>Scale monitor:</span>
-                <span id="scaleEnabled">--</span>
-              </div>
-              <div class="mini-row">
-                <span>Scale status:</span>
-                <span id="scaleStatus">--</span>
-              </div>
-              <div class="mini-row">
-                <span>Timer:</span>
-                <span id="scaleTimer">--</span>
-              </div>
-            </div>
-            <pre id="scaleMessage" class="output">Scale monitor status will appear here.</pre>
-          </section>
-
-          <section class="card stress">
-            <h2>Stress Test</h2>
-            <div class="stress-actions">
-              <button id="stressStartBtn" class="btn danger">Start</button>
-              <button id="stressStopBtn" class="btn secondary">Stop</button>
-            </div>
-            <pre id="stressOutput" class="output">Idle.</pre>
-          </section>
-        </div>
+        <section class="card logs-panel">
+          <h2>Service Logs</h2>
+          <pre id="terminalLogs" class="terminal-logs">Waiting for logs...</pre>
+        </section>
       </div>
     </main>
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v=20260330"></script>
   </body>
 </html>

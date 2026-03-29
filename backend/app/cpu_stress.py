@@ -28,7 +28,7 @@ class CpuStressController:
                 }
 
             if workers is None:
-                workers = os.cpu_count() or 1
+                workers = 10
             workers = max(1, int(workers))
 
             self._events = [mp.Event() for _ in range(workers)]

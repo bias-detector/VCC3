@@ -1,13 +1,13 @@
-# Guess the Number - Simple Game
+# Autoscale Lifecycle Demo
 
-A minimal FastAPI web application featuring a number guessing game with CPU stress testing capabilities.
+A FastAPI web app that demonstrates autoscale lifecycle behavior: local CPU stress triggers remote VM scale-up, and sustained low CPU triggers VM scale-down (delete).
 
 ## What this project demonstrates
 
-1. Simple game logic with server-side state
-2. Clean frontend-backend separation
-3. CPU stress testing tools
-4. Real-time metrics display
+1. CPU stress generation from local app
+2. CPU threshold-based remote VM deployment (scale-up)
+3. Arm-and-delete flow for scale-down when CPU stays low
+4. Real-time timeline of scaling events with timestamps
 
 ## Tech stack
 
@@ -22,6 +22,8 @@ VCC/
 │   └── app/
 │       ├── main.py
 │       ├── config.py
+│       ├── constants/
+│       │   └── app_constants.py
 │       ├── models.py
 │       ├── cpu_stress.py
 │       └── __init__.py
@@ -31,8 +33,8 @@ VCC/
 │   │   ├── styles.css
 │   │   └── app.js
 │   └── src/
-├── .env
-├── .env.example
+├── scripts/
+│   └── deploy_gcp.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -50,69 +52,82 @@ VCC/
 ### Setup
 
 1. Clone the repository
-2. Create a virtual environment:
+2. Go into the project folder:
+
+   ```bash
+   cd VCC
+   ```
+
+3. Create a virtual environment:
 
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-3. Install dependencies:
+4. Install dependencies:
 
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Start the server:
+5. Start the server:
 
    ```bash
    uvicorn backend.app.main:app --reload
    ```
 
-5. Open the app:
+6. Open the app:
    - App: http://127.0.0.1:8000
    - Health: http://127.0.0.1:8000/api/health
-   - Metrics: http://127.0.0.1:8000/api/metrics
+   - Scale Metrics: http://127.0.0.1:8000/api/scale/metrics
 
-## How to play
+### Notes for local machine
 
-1. Click **Start New Game** to begin
-2. Enter a number between 1 and 100
-3. The game will tell you if your guess is too high, too low, or correct
-4. Try to guess the number in as few attempts as possible!
+1. App settings are in `backend/app/constants/app_constants.py`.
+2. If you change constants, restart the server.
+
+## Demo workflow
+
+1. Click **Start Stress** to raise local CPU usage.
+2. When CPU stays above threshold for configured seconds, the app triggers VM deployment.
+3. Watch status transitions and timestamped events in the UI.
+4. Click **Stop Stress** to arm scale-down.
+5. If CPU remains below threshold for 10 seconds, the remote VM is deleted.
 
 ## Optional features
 
-- Use **Start CPU Stress** to test system performance
-- View real-time CPU usage in the Metrics section
-- Enable simple CPU-based auto scale-up monitor (runs deploy script automatically)
+- View real-time CPU and scale state in the dashboard
+- Watch live service events (with timestamps) in the UI
+- View deploy script log tail directly in the UI
+- Keep terminal logs visible while server is running
 
 ## API endpoints
 
 1. `GET /api/health` - Health check
-2. `GET /api/metrics` - CPU usage and stress status
-3. `POST /api/game/start` - Start a new game
-4. `POST /api/game/guess` - Submit a guess
-5. `POST /api/stress/start` - Start CPU stress
-6. `POST /api/stress/stop` - Stop CPU stress
+2. `GET /api/scale/metrics` - CPU, stress, scale state, UI event log, deploy log tail
+3. `GET /api/scale/stress/status` - CPU stress worker status
+4. `POST /api/scale/stress/start` - Start CPU stress workers
+5. `POST /api/scale/stress/stop` - Stop CPU stress workers (arms scale-down if VM is active)
 
-## Environment variables
+## Configuration
 
-See `.env.example` for configuration:
+Project and scaling settings are centralized in:
 
-```bash
-SERVICE_NAME=Number Guess Game
-GCP_PROJECT_ID=
-GCP_VM_NAME=guess-game-vm
-GCP_ZONE=us-central1-a
-GCP_MACHINE_TYPE=e2-medium
-REPO_URL=
-SCALE_UP_CPU_THRESHOLD=75
-SCALE_UP_SECONDS=20
-SCALE_POLL_SECONDS=1
-```
+- `backend/app/constants/app_constants.py`
 
-## See scale-up live
+Main values:
+
+1. `GCP_PROJECT_ID`
+2. `GCP_VM_NAME`
+3. `GCP_ZONE`
+4. `GCP_MACHINE_TYPE`
+5. `REPO_URL`
+6. `SCALE_UP_CPU_THRESHOLD`
+7. `SCALE_UP_SECONDS`
+8. `SCALE_POLL_SECONDS`
+
+## See scale lifecycle live
 
 1. Make sure Google Cloud CLI is installed and authenticated:
 
@@ -121,36 +136,54 @@ SCALE_POLL_SECONDS=1
    gcloud config set project YOUR_GCP_PROJECT_ID
    ```
 
-2. Set `GCP_PROJECT_ID` in `.env`:
+2. Confirm values in `backend/app/constants/app_constants.py`.
 
-   ```bash
-   GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
-   ```
-
-3. (Optional) Set your repository URL if needed by the VM startup script:
-
-   ```bash
-   REPO_URL=https://github.com/YOUR_USER/VCC.git
-   ```
-
-4. Start the app:
+3. Start the app:
 
    ```bash
    uvicorn backend.app.main:app --reload
    ```
 
-5. Open the app at `http://127.0.0.1:8000`.
+4. Open the app at `http://127.0.0.1:8000`.
 
-6. Click **Start** in Stress Test to push CPU usage high.
+5. Click **Start Stress** to push CPU usage high.
 
-7. Watch the top-right metrics card:
-   - `Scale monitor` should be `ON`
+6. Watch the dashboard:
    - `Scale status` moves from `watching` to `deploying` to `scaled_up`
-   - `Timer` counts sustained high CPU duration
-   - `Scale message` shows progress and remote URL when available
+   - High CPU timer counts sustained above-threshold duration
+   - Event timeline shows timestamped lifecycle logs
+   - Deploy log tail shows recent lines from local deploy log
 
-8. You can also deploy manually anytime:
+7. Click **Stop Stress** to arm scale-down.
 
-   ```bash
-   python3 scripts/deploy_gcp.py YOUR_GCP_PROJECT_ID
-   ```
+8. Keep CPU below threshold for 10 seconds to trigger VM deletion.
+
+9. Watch status move to `deleting`, then back to `watching` after delete.
+
+10. You can also deploy manually anytime:
+
+```bash
+python3 scripts/deploy_gcp.py
+```
+
+Optional overrides:
+
+```bash
+python3 scripts/deploy_gcp.py <project_id> <vm_name> <zone> <machine_type> <repo_url>
+```
+
+## Troubleshooting
+
+If UI buttons appear unresponsive, fully restart `uvicorn` and hard refresh the browser.
+
+If remote VM launch fails, check local deployment logs:
+
+```bash
+tail -n 120 scripts/deploy_gcp.log
+```
+
+You can also watch logs live:
+
+```bash
+tail -f scripts/deploy_gcp.log
+```
