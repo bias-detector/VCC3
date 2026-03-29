@@ -139,3 +139,35 @@ textarea {
     grid-template-columns: 1fr;
   }
 }
+
+.cpu-display {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--line);
+  font-weight: 700;
+}
+
+.cpu-value {
+  font-size: 1.2rem;
+  color: var(--primary);
+  min-width: 60px;
+}
+
+.cpu-value.high {
+  color: var(--danger);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}

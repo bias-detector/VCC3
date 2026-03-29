@@ -41,20 +41,29 @@ First run takes 2-5 minutes for LLM model download (2GB)
 
 ```bash
 cd /Users/adil.shamim/Desktop/VCC
-docker-compose up -d
+open -a Docker
+docker info
+docker compose up -d
+docker exec vcc-ollama ollama pull llama3.2:1b
+curl http://127.0.0.1:8000/api/health
 ```
+
+Notes:
+
+- `ollama pull` is one-time. Model files persist in the `ollama_data` Docker volume.
+- If Docker is already running, `open -a Docker` is harmless.
 
 Monitor progress:
 
 ```bash
-docker-compose logs -f ollama
-docker-compose logs -f vcc-backend
+docker compose logs -f ollama
+docker compose logs -f vcc-backend
 ```
 
 Stop:
 
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ### Option C: Manual Python Virtual Environment
@@ -135,7 +144,7 @@ OFFLOAD_QUEUE_THRESHOLD=8
 2. Restart local service:
 
 ```bash
-docker-compose restart vcc-backend
+docker compose restart vcc-backend
 ```
 
 3. Open local frontend: http://127.0.0.1:8000
@@ -172,7 +181,7 @@ On cloud VM (via SSH or deployment script):
 
 ```bash
 # Via docker-compose
-docker-compose up -d
+docker compose up -d
 
 # Or directly:
 docker run -d \
@@ -211,7 +220,7 @@ Scenario: Show how local VM auto-scales by offloading to cloud
 
 ```bash
 CLOUD_BACKEND_URL=http://34.123.45.67:8000
-docker-compose restart vcc-backend
+docker compose restart vcc-backend
 ```
 
 ### Demo Flow

@@ -3,6 +3,7 @@ import random
 from pathlib import Path
 
 import httpx
+import psutil
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -47,6 +48,7 @@ async def health() -> dict:
 @app.get("/api/metrics")
 async def metrics() -> dict:
     m = controller.metrics
+    cpu_percent = psutil.cpu_percent(interval=0.1)
     return {
         "service": settings.service_name,
         "total_requests": m.total_requests,
@@ -55,6 +57,7 @@ async def metrics() -> dict:
         "offload_events": m.offload_events,
         "queue_depth": m.queue_depth,
         "errors": m.errors,
+        "cpu_percent": cpu_percent,
     }
 
 

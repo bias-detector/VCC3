@@ -86,6 +86,11 @@ async function refreshMetrics() {
       return;
     }
     const data = await response.json();
+    const cpuPercent = document.getElementById("cpuPercent");
+    if (cpuPercent) {
+      cpuPercent.textContent = data.cpu_percent.toFixed(1) + "%";
+      cpuPercent.className = data.cpu_percent > 75 ? "cpu-value high" : "cpu-value";
+    }
     metricsBox.textContent = JSON.stringify(data, null, 2);
   } catch {
     // No-op if metrics call fails.
