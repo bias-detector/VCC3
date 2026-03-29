@@ -1,80 +1,136 @@
-const textInput = document.getElementById("textInput");
-const classifyBtn = document.getElementById("classifyBtn");
+const startBtn = document.getElementById("startBtn");
+const gameContent = document.getElementById("gameContent");
+const guessInput = document.getElementById("guessInput");
+const guessBtn = document.getElementById("guessBtn");
+const gameMessage = document.getElementById("gameMessage");
 const resultBox = document.getElementById("result");
 
-const loadBtn = document.getElementById("loadBtn");
-const totalRequestsInput = document.getElementById("totalRequests");
-const concurrencyInput = document.getElementById("concurrency");
-const loadOutput = document.getElementById("loadOutput");
-const metricsBox = document.getElementById("metrics");
+const stressStartBtn = document.getElementById("stressStartBtn");
+const stressStopBtn = document.getElementById("stressStopBtn");
+const stressOutput = document.getElementById("stressOutput");
+const cpuPercent = document.getElementById("cpuPercent");
+const scaleEnabled = document.getElementById("scaleEnabled");
+const scaleStatus = document.getElementById("scaleStatus");
+const scaleTimer = document.getElementById("scaleTimer");
+const scaleMessage = document.getElementById("scaleMessage");
 
-async function classifyText() {
-  const text = textInput.value.trim();
-  if (!text) {
-    resultBox.className = "result";
-    resultBox.textContent = "Please enter text first.";
+let gameActive = false;
+
+async function startGame() {
+  try {
+    const response = await fetch("/api/game/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to start game");
+    }
+
+    const data = await response.json();
+    gameActive = true;
+    gameContent.classList.remove("hidden");
+    gameMessage.textContent = data.message;
+    resultBox.classList.add("hidden");
+    guessInput.value = "";
+    guessInput.focus();
+    startBtn.textContent = "New Game";
+  } catch (error) {
+    gameMessage.textContent = `Error: ${error.message}`;
+  }
+}
+
+async function makeGuess() {
+  const guess = guessInput.value.trim();
+
+  if (!guess) {
+    resultBox.textContent = "Please enter a number!";
+    resultBox.classList.remove("hidden");
     return;
   }
 
-  classifyBtn.disabled = true;
-  classifyBtn.textContent = "Classifying...";
-
   try {
-    const response = await fetch("/api/classify", {
+    const response = await fetch("/api/game/guess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ guess: parseInt(guess) }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to make guess");
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      resultBox.textContent = data.error;
+      resultBox.className = "result error";
+    } else {
+      resultBox.textContent = data.message;
+      resultBox.className = `result ${data.result}`;
+      
+      if (data.game_over) {
+        gameActive = false;
+        guessBtn.disabled = true;
+        guessInput.disabled = true;
+      }
+    }
+
+    resultBox.classList.remove("hidden");
+    guessInput.value = "";
+    guessInput.focus();
+  } catch (error) {
+    resultBox.textContent = `Error: ${error.message}`;
+    resultBox.classList.remove("hidden");
+  }
+}
+
+async function startCpuStress() {
+  stressStartBtn.disabled = true;
+  stressOutput.textContent = "Starting CPU stress...";
+  try {
+    const response = await fetch("/api/stress/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
     });
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(err || "Classification failed");
+      throw new Error(err || "Failed to start CPU stress");
     }
 
     const data = await response.json();
-    const label = data.toxic ? "TOXIC" : "NOT TOXIC";
-    const confidence = Number(data.confidence || 0).toFixed(2);
-
-    resultBox.className = `result ${data.toxic ? "toxic" : "clean"}`;
-    resultBox.textContent = `Result: ${label}\nConfidence: ${confidence}\nSource: ${data.source}\nReason: ${data.reason}`;
+    stressOutput.textContent = data.message || "CPU stress started.";
+    stressStopBtn.disabled = false;
   } catch (error) {
-    resultBox.className = "result";
-    resultBox.textContent = `Error: ${error.message}`;
+    stressOutput.textContent = `Error: ${error.message}`;
   } finally {
-    resultBox.classList.remove("hidden");
-    classifyBtn.disabled = false;
-    classifyBtn.textContent = "Classify";
+    stressStartBtn.disabled = false;
     refreshMetrics();
   }
 }
 
-async function generateLoad() {
-  const total_requests = Number(totalRequestsInput.value || 200);
-  const concurrency = Number(concurrencyInput.value || 40);
-
-  loadBtn.disabled = true;
-  loadBtn.textContent = "Generating...";
-  loadOutput.textContent = "Running load test...";
+async function stopCpuStress() {
+  stressStopBtn.disabled = true;
+  stressOutput.textContent = "Stopping CPU stress...";
 
   try {
-    const response = await fetch("/api/generate-load", {
+    const response = await fetch("/api/stress/stop", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ total_requests, concurrency, toxic_ratio: 0.55 }),
     });
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(err || "Load generation failed");
+      throw new Error(err || "Failed to stop CPU stress");
     }
 
     const data = await response.json();
-    loadOutput.textContent = JSON.stringify(data, null, 2);
+    stressOutput.textContent = data.message || "CPU stress stopped.";
   } catch (error) {
-    loadOutput.textContent = `Error: ${error.message}`;
+    stressOutput.textContent = `Error: ${error.message}`;
   } finally {
-    loadBtn.disabled = false;
-    loadBtn.textContent = "Generate Load and Trigger Upscaling";
+    stressStopBtn.disabled = false;
     refreshMetrics();
   }
 }
@@ -86,18 +142,54 @@ async function refreshMetrics() {
       return;
     }
     const data = await response.json();
-    const cpuPercent = document.getElementById("cpuPercent");
     if (cpuPercent) {
       cpuPercent.textContent = data.cpu_percent.toFixed(1) + "%";
       cpuPercent.className = data.cpu_percent > 75 ? "cpu-value high" : "cpu-value";
     }
-    metricsBox.textContent = JSON.stringify(data, null, 2);
+
+    if (scaleEnabled) {
+      scaleEnabled.textContent = data.scale_monitor_enabled ? "ON" : "OFF";
+    }
+
+    if (scaleStatus) {
+      scaleStatus.textContent = data.scale_status || "idle";
+    }
+
+    if (scaleTimer) {
+      const above = Number(data.scale_above_threshold_seconds || 0);
+      const target = Number(data.scale_target_seconds || 0);
+      scaleTimer.textContent = `${above}s / ${target}s`;
+    }
+
+    if (scaleMessage) {
+      const remoteUrl = data.scale_remote_url ? `\nRemote: ${data.scale_remote_url}` : "";
+      scaleMessage.textContent = (data.scale_message || "No scale events yet.") + remoteUrl;
+    }
+
+    const stressActive = Boolean(data.stress_active);
+    if (stressStartBtn && stressStopBtn) {
+      stressStartBtn.disabled = stressActive;
+      stressStopBtn.disabled = !stressActive;
+    }
   } catch {
-    // No-op if metrics call fails.
+    // No-op if metrics call fails
   }
 }
 
-classifyBtn.addEventListener("click", classifyText);
-loadBtn.addEventListener("click", generateLoad);
-setInterval(refreshMetrics, 3000);
+startBtn.addEventListener("click", startGame);
+guessBtn.addEventListener("click", makeGuess);
+guessInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    makeGuess();
+  }
+});
+
+if (stressStartBtn) {
+  stressStartBtn.addEventListener("click", startCpuStress);
+}
+if (stressStopBtn) {
+  stressStopBtn.addEventListener("click", stopCpuStress);
+}
+
+setInterval(refreshMetrics, 1000);
 refreshMetrics();

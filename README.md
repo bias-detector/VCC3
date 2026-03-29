@@ -1,324 +1,156 @@
-# VCC 3 - Auto Scaling Toxicity Classifier Demo
+# Guess the Number - Simple Game
 
-This project is a Python microservice with frontend and backend for your VCC assignment.
+A minimal FastAPI web application featuring a number guessing game with CPU stress testing capabilities.
 
-- Page title: VCC 3
-- Intro text: Auto scaling Demo project
-- Main feature: toxicity classification using self-hosted local LLM
-- Stress demo: red button to generate load and trigger local VM to Google Cloud VM load shift
+## What this project demonstrates
 
-## Architecture
+1. Simple game logic with server-side state
+2. Clean frontend-backend separation
+3. CPU stress testing tools
+4. Real-time metrics display
 
-1. Frontend UI is served by FastAPI
-2. /api/classify first tries local processing
-3. If queue pressure is high, request is offloaded to cloud VM
-4. If local processing times out, fallback to cloud VM when configured
-5. /api/generate-load creates burst traffic and returns local/cloud split
+## Tech stack
 
-## Quick Start (Local VM with Docker)
+1. Backend: FastAPI, Python
+2. Frontend: HTML, CSS, Vanilla JavaScript
 
-Docker handles all dependencies automatically - no manual Ollama setup needed.
+## Project structure
 
-### Option A: One-Command Docker Deploy (Recommended)
-
-Install Docker Desktop first.
-
-```bash
-cd /Users/adil.shamim/Desktop/VCC
-chmod +x scripts/local-deploy.sh
-./scripts/local-deploy.sh
-```
-
-This will:
-
-- Start Ollama container and pull llama3.2:1b
-- Launch FastAPI backend
-- Expose everything on http://127.0.0.1:8000
-
-First run takes 2-5 minutes for LLM model download (2GB)
-
-### Option B: Manual Docker Compose
-
-```bash
-cd /Users/adil.shamim/Desktop/VCC
-open -a Docker
-docker info
-docker compose up -d
-docker exec vcc-ollama ollama pull llama3.2:1b
-curl http://127.0.0.1:8000/api/health
-```
-
-Notes:
-
-- `ollama pull` is one-time. Model files persist in the `ollama_data` Docker volume.
-- If Docker is already running, `open -a Docker` is harmless.
-
-Monitor progress:
-
-```bash
-docker compose logs -f ollama
-docker compose logs -f vcc-backend
-```
-
-Stop:
-
-```bash
-docker compose down
-```
-
-### Option C: Manual Python Virtual Environment
-
-If you prefer no Docker:
-
-```bash
-cd /Users/adil.shamim/Desktop/VCC
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-
-ollama pull llama3.2:1b
-
-cd backend
-set -a; source ../.env; set +a
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Open http://127.0.0.1:8000
-
-## GCP Deployment (Cloud VM)
-
-Automatically create a Google Cloud VM and deploy backend with one command.
-
-### Prerequisites
-
-1. Google Cloud SDK installed
-2. Active GCP project with billing enabled
-3. Authentication: gcloud auth login
-
-### Deploy to GCP
-
-```bash
-chmod +x scripts/deploy-gcp-vm.sh
-./scripts/deploy-gcp-vm.sh my-gcp-project vcc-3-backend us-central1-a e2-medium
-```
-
-Parameters:
-
-- my-gcp-project: Your GCP project ID
-- vcc-3-backend: VM name (optional)
-- us-central1-a: Zone (optional)
-- e2-medium: Machine type (optional)
-
-The script will:
-
-1. Create a Debian 12 VM
-2. Install Docker
-3. Clone this repo
-4. Build and run backend container
-5. Set up firewall rules for port 8000
-6. Output the cloud VM IP
-
-Example output:
-
-```
-Frontend: http://34.123.45.67:8000
-API: http://34.123.45.67:8000/api
-```
-
-### Connect Local VM to Cloud Backend
-
-Once cloud VM is running:
-
-1. On local machine, edit .env:
-
-```bash
-SERVICE_NAME=VCC-3 Local VM
-OLLAMA_URL=http://127.0.0.1:11434
-CLOUD_BACKEND_URL=http://34.123.45.67:8000
-MAX_LOCAL_CONCURRENCY=4
-MAX_LOCAL_QUEUE=20
-OFFLOAD_QUEUE_THRESHOLD=8
-```
-
-2. Restart local service:
-
-```bash
-docker compose restart vcc-backend
-```
-
-3. Open local frontend: http://127.0.0.1:8000
-
-4. Click Generate Load and Trigger Upscaling button
-
-5. Watch metrics show cloud_routed count increasing
-
-### SSH into Cloud VM
-
-```bash
-gcloud compute ssh vcc-3-backend --zone us-central1-a
-```
-
-View logs:
-
-```bash
-docker logs vcc-3-backend -f
-```
-
-### Cleanup (Delete Cloud VM)
-
-```bash
-chmod +x scripts/cleanup-gcp-vm.sh
-./scripts/cleanup-gcp-vm.sh my-gcp-project vcc-3-backend us-central1-a
-```
-
-Deploy the same code to cloud VM and run with:
-
-- `SERVICE_NAME=VCC-3 Cloud VM`
-- `CLOUD_BACKEND_URL=` (empty, since it IS the cloud backend)
-
-On cloud VM (via SSH or deployment script):
-
-```bash
-# Via docker-compose
-docker compose up -d
-
-# Or directly:
-docker run -d \
-  --name vcc-3-backend \
-  -p 8000:8000 \
-  -e SERVICE_NAME="VCC-3 Cloud VM" \
-  -e OLLAMA_MODEL="llama3.2:1b" \
-  vcc-3-backend
-```
-
-Ensure cloud firewall allows port `8000`.
-
-## Local -> Cloud Load Shift Demo (Assignment Presentation)
-
-**Scenario:** Show how local VM auto-scales by offloading to cloud.
-
-### Setupto Cloud Load Shift Demo (Assignment Presentation)
-
-Scenario: Show how local VM auto-scales by offloading to cloud
-
-### Setup
-
-1. Local VM (Mac/Linux laptop):
-
-```bash
-./scripts/local-deploy.sh
-```
-
-2. Cloud VM (GCP):
-
-```bash
-./scripts/deploy-gcp-vm.sh my-project vcc-3-backend
-```
-
-3. Connect local to cloud (update .env):
-
-```bash
-CLOUD_BACKEND_URL=http://34.123.45.67:8000
-docker compose restart vcc-backend
-```
-
-### Demo Flow
-
-1. Open two browser tabs:
-   - Local: http://127.0.0.1:8000/api/metrics
-   - Cloud: http://34.123.45.67:8000/api/metrics
-
-2. On local UI, click Generate Load and Trigger Upscaling with concurrency 40
-
-3. Watch in real-time:
-   - Local metrics: queue_depth spikes, then requests offload
-   - Cloud metrics: total_requests and local_requests increase
-   - Local metrics: cloud_routed count increases
-
-4. Proof: Both metrics dashboards show the split trafficPOST /api/classify`
-
-- `POST /api/generate-load`
-
----
-
-## Project Structure (Industry Standard)
-
-```
+```text
 VCC/
-├── frontend/                  ← UI code (separate from backend)
-│   ├── public/               ← Static assets
+├── backend/
+│   └── app/
+│       ├── main.py
+│       ├── config.py
+│       ├── models.py
+│       ├── cpu_stress.py
+│       └── __init__.py
+├── frontend/
+│   ├── public/
 │   │   ├── index.html
 │   │   ├── styles.css
 │   │   └── app.js
-│   └── src/                  ← Future React/TypeScript code
-├── backend/                  ← API & LLM logic (pure Python)
-│   └── app/
-│       ├── main.py          ← FastAPI endpoints
-│       ├── config.py        ← Settings (env vars)
-│       ├── models.py        ← Request/response schemas
-│       ├── llm_client.py    ← Ollama integration
-│       └── scaler.py        ← Load balancer & queue logic
-├── scripts/                  ← Deployment automation
-│   ├── local-deploy.sh      ← One-command local setup
-│   ├── deploy-gcp-vm.sh     ← One-command cloud deploy
-│   └── cleanup-gcp-vm.sh    ← Tear down cloud resources
-├── Dockerfile               ← Backend container (copies frontend too)
-├── docker-compose.yml       ← Local dev orchestration
-├── requirements.txt         ← Python dependencies
-└── .env.example             ← Configuration template
+│   └── src/
+├── .env
+├── .env.example
+├── requirements.txt
+├── .gitignore
+└── README.md
 ```
 
-**Why separate frontend/backend?**
+## Prerequisites
 
-- **Industry standard:** Clean separation of concerns
-- **Scalable:** Frontend can later be served from CDN
-- **Team-friendly:** Frontend dev doesn't need Python knowledge
-- **Future-proof:** Easy to migrate to React/Vue when needed
+### Local
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed explanation.
+1. Python 3.8+
+2. pip
 
-## Why Docker?
+## Run locally
 
-| Aspect | Docker | Manual Setup |
-| ------ | ------ | ------------ |
+### Setup
 
-| Dependencie
+1. Clone the repository
+2. Create a virtual environment:
 
-| Aspect                | Docker          | Manual Setup          |
-| --------------------- | --------------- | --------------------- |
-| Dependencies          | All built in    | Manual Ollama install |
-| Reproducibility       | Same everywhere | Varies by machine     |
-| Speed                 | One command     | 5+ commands           |
-| Cloud Deployment      | 1 script        | Manual SSH setup      |
-| Environment Variables | In compose      | Manual .env edits     |
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
 
-Use ./scripts/local-deploy.sh on laptop, ./scripts/deploy-gcp-vm.sh for cloud.
+3. Install dependencies:
 
-## Troubleshooting
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Port 8000 in use:
+4. Start the server:
+
+   ```bash
+   uvicorn backend.app.main:app --reload
+   ```
+
+5. Open the app:
+   - App: http://127.0.0.1:8000
+   - Health: http://127.0.0.1:8000/api/health
+   - Metrics: http://127.0.0.1:8000/api/metrics
+
+## How to play
+
+1. Click **Start New Game** to begin
+2. Enter a number between 1 and 100
+3. The game will tell you if your guess is too high, too low, or correct
+4. Try to guess the number in as few attempts as possible!
+
+## Optional features
+
+- Use **Start CPU Stress** to test system performance
+- View real-time CPU usage in the Metrics section
+- Enable simple CPU-based auto scale-up monitor (runs deploy script automatically)
+
+## API endpoints
+
+1. `GET /api/health` - Health check
+2. `GET /api/metrics` - CPU usage and stress status
+3. `POST /api/game/start` - Start a new game
+4. `POST /api/game/guess` - Submit a guess
+5. `POST /api/stress/start` - Start CPU stress
+6. `POST /api/stress/stop` - Stop CPU stress
+
+## Environment variables
+
+See `.env.example` for configuration:
 
 ```bash
-docker-compose down
-lsof -i :8000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+SERVICE_NAME=Number Guess Game
+GCP_PROJECT_ID=
+GCP_VM_NAME=guess-game-vm
+GCP_ZONE=us-central1-a
+GCP_MACHINE_TYPE=e2-medium
+REPO_URL=
+SCALE_UP_CPU_THRESHOLD=75
+SCALE_UP_SECONDS=20
+SCALE_POLL_SECONDS=1
 ```
 
-Ollama model not downloading:
+## See scale-up live
 
-```bash
-docker logs vcc-ollama -f
-```
+1. Make sure Google Cloud CLI is installed and authenticated:
 
-Wait 2-5 min, check disk space (2GB needed)
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_GCP_PROJECT_ID
+   ```
 
-Cloud VM frontend loads but Classify button hangs:
+2. Set `GCP_PROJECT_ID` in `.env`:
 
-- Check network firewall allows traffic
-- SSH in: gcloud compute ssh vcc-3-backend --zone ZONE
-- Check container: docker logs vcc-3-backend
+   ```bash
+   GCP_PROJECT_ID=YOUR_GCP_PROJECT_ID
+   ```
 
-Local offload not working:
+3. (Optional) Set your repository URL if needed by the VM startup script:
 
-- Verify CLOUD_BACKEND_URL in .env is correct (no trailing slash)
-- Check connectivity: curl http://<CLOUD_IP>:8000/api/health
+   ```bash
+   REPO_URL=https://github.com/YOUR_USER/VCC.git
+   ```
+
+4. Start the app:
+
+   ```bash
+   uvicorn backend.app.main:app --reload
+   ```
+
+5. Open the app at `http://127.0.0.1:8000`.
+
+6. Click **Start** in Stress Test to push CPU usage high.
+
+7. Watch the top-right metrics card:
+   - `Scale monitor` should be `ON`
+   - `Scale status` moves from `watching` to `deploying` to `scaled_up`
+   - `Timer` counts sustained high CPU duration
+   - `Scale message` shows progress and remote URL when available
+
+8. You can also deploy manually anytime:
+
+   ```bash
+   python3 scripts/deploy_gcp.py YOUR_GCP_PROJECT_ID
+   ```

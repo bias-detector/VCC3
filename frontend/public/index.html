@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VCC 3</title>
+    <title>Guess the Number</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -15,44 +15,60 @@
   <body>
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">Auto scaling Demo project</p>
-        <h1>VCC 3</h1>
+        <h1>Guess the Number</h1>
         <p class="intro">
-          This micro-service demonstrates a toxicity classifier powered by a local self-hosted
-          LLM, with cloud VM load shifting when traffic spikes.
+          Guess a number between 1 and 100. See if you can beat the computer!
         </p>
       </section>
 
-      <section class="card classifier">
-        <h2>Toxicity Classifier</h2>
-        <label for="textInput">Enter text</label>
-        <textarea id="textInput" rows="5" placeholder="Type a sentence to classify..."></textarea>
-        <button id="classifyBtn" class="btn primary">Classify</button>
-        <div id="result" class="result hidden"></div>
-      </section>
+      <div class="layout-container">
+        <section class="card game">
+          <h2>Play Game</h2>
+          <button id="startBtn" class="btn primary">Start New Game</button>
+          <div id="gameContent" class="game-content hidden">
+            <p id="gameMessage">Think of a number between 1 and 100...</p>
+            <div class="guess-area">
+              <input id="guessInput" type="number" placeholder="Enter your guess" min="1" max="100" />
+              <button id="guessBtn" class="btn primary">Guess</button>
+            </div>
+            <div id="result" class="result hidden"></div>
+          </div>
+        </section>
 
-      <section class="card load">
-        <h2>Stress and Auto Scale</h2>
-        <p>
-          Press the red button to generate burst traffic. The local VM will route extra traffic to
-          the Google Cloud VM backend when queue pressure is high.
-        </p>
-        <div class="controls">
-          <label>Total Requests <input id="totalRequests" type="number" min="1" max="5000" value="200" /></label>
-          <label>Concurrency <input id="concurrency" type="number" min="1" max="200" value="40" /></label>
-        </div>
-        <button id="loadBtn" class="btn danger">Generate Load and Trigger Upscaling</button>
-        <pre id="loadOutput" class="output"></pre>
-      </section>
+        <div class="sidebar">
+          <section class="card metrics">
+            <h2>Metrics</h2>
+            <div class="cpu-display">
+              <span>CPU:</span>
+              <span id="cpuPercent" class="cpu-value">--</span>
+            </div>
+            <div class="mini-metrics">
+              <div class="mini-row">
+                <span>Scale monitor:</span>
+                <span id="scaleEnabled">--</span>
+              </div>
+              <div class="mini-row">
+                <span>Scale status:</span>
+                <span id="scaleStatus">--</span>
+              </div>
+              <div class="mini-row">
+                <span>Timer:</span>
+                <span id="scaleTimer">--</span>
+              </div>
+            </div>
+            <pre id="scaleMessage" class="output">Scale monitor status will appear here.</pre>
+          </section>
 
-      <section class="card metrics">
-        <h2>Live Metrics</h2>
-        <div class="cpu-display">
-          <span>CPU Usage:</span>
-          <span id="cpuPercent" class="cpu-value">--</span>
+          <section class="card stress">
+            <h2>Stress Test</h2>
+            <div class="stress-actions">
+              <button id="stressStartBtn" class="btn danger">Start</button>
+              <button id="stressStopBtn" class="btn secondary">Stop</button>
+            </div>
+            <pre id="stressOutput" class="output">Idle.</pre>
+          </section>
         </div>
-        <pre id="metrics"></pre>
-      </section>
+      </div>
     </main>
     <script src="/static/app.js"></script>
   </body>
