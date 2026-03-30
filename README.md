@@ -14,6 +14,8 @@ A FastAPI web app that demonstrates autoscale lifecycle behavior: local CPU stre
 1. Backend: FastAPI, Python
 2. Frontend: HTML, CSS, Vanilla JavaScript
 
+## Video Demo : https://youtu.be/m3_O4pQWdaQ?si=OVDARjL-9nDXKBif
+
 ## Project structure
 
 ```text
